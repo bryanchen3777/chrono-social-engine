@@ -367,6 +367,26 @@ run_post_llm_hook(ctx, config=AKANE, user_message=user_input)
 
 ---
 
+## v3 計畫（尚未實作，Stage 1 整合完成後再啟動）
+
+### Event Causality Chain
+- 新增 `TemporalEvent` dataclass 與對應 SQLite table
+- `create_carryover_if_needed` 改為同時寫入 `temporal_events`
+- 提供 `trace_event_chain(event_id)` 查詢函數
+- 目標：讓「茜為什麼這樣回應」可以被追蹤與 debug
+
+### PersonalRhythmProfile
+- 從 temporal_events 歷史推算 `usual_sleep_hour` / `usual_wake_hour`
+- 移動平均，alpha=0.15
+
+### RelationshipRhythm
+- `shared_night_count`、`peak_intimacy_hour`
+- `background_state_evolution`（APScheduler）
+
+> **執行原則**：Stage 1 整合完成後，讓真實對話跑一段時間，累積真實 debug 需求後再啟動 v3。
+
+---
+
 ## 🎯 完成定義
 
 - [ ] `pytest tests/` 全部通過
