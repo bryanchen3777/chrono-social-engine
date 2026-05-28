@@ -23,4 +23,4 @@ class PersonaConfig:
     vulnerability_silence_min: float = 4.0  # 小時
     worry_resolution_delta: float = 0.6
     attachment_heat_bump: float = 0.1
-    timezone: ZoneInfo = field(default_factory=lambda: ZoneInfo("Asia/Tokyo"))
+    timezone: ZoneInfo = field(default_factory=lambda: ZoneInfo("America/New_York"))

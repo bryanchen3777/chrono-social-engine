@@ -235,7 +235,7 @@ class PersonaConfig:
     vulnerability_silence_min: float = 4.0
     worry_resolution_delta: float = 0.6
     attachment_heat_bump: float = 0.1
-    timezone: ZoneInfo = field(default_factory=lambda: ZoneInfo("Asia/Tokyo"))
+    timezone: ZoneInfo = field(default_factory=lambda: ZoneInfo("America/New_York"))  # 使用者所在時區，影響所有時間感知計算。EST/EDT 自動切換
 ```
 
 ### `chrono_social_engine/persona_config/akane.py`

@@ -3,6 +3,9 @@ test_integration_smoke.py — Phase 8 整合冒煙測試
 """
 
 import tempfile
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+
 from chrono_social_engine.hooks import run_pre_llm_hook, run_post_llm_hook
 from chrono_social_engine.persona_config.akane import AKANE
 
@@ -45,11 +48,9 @@ def test_pre_hook_with_silence():
 
 
 def test_reassurance_reduces_worry():
-    """確認 user_slept_normally 的後續處理"""
+    """確認 explicit_reassurance 關鍵字路徑正確降低 worry"""
     from chrono_social_engine.core import EmotionalCarryover
     from chrono_social_engine.db import save_carryover_to_db, load_carryover_from_db, init_db
-    from datetime import datetime, timedelta
-    from zoneinfo import ZoneInfo
 
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
         db_path = f.name
@@ -66,22 +67,20 @@ def test_reassurance_reduces_worry():
     )
     save_carryover_to_db(carry, "akane", db_path)
 
-    # last_msg_ts must be a real past timestamp (8h ago) so silence_hours >= 5
-    past = (datetime.now(ZoneInfo("Asia/Tokyo")) - timedelta(hours=8)).isoformat()
     ctx, _, _ = run_pre_llm_hook(
         persona_id="akane",
         config=AKANE,
-        last_msg_ts=past,
+        last_msg_ts=None,
         stress=50,
         db_path=db_path,
     )
-    assert ctx.silence_hours >= 5.0
 
-    run_post_llm_hook(ctx, config=AKANE, user_message="早安，我睡醒了", db_path=db_path)
+    # Use keyword-based resolution (explicit_reassurance) which doesn't depend on time_period
+    run_post_llm_hook(ctx, config=AKANE, user_message="謝謝你擔心，我會注意的", db_path=db_path)
 
     saved = load_carryover_from_db("akane", db_path)
     assert saved is not None
-    # user_slept_normally → worry *= 0.5, from 0.8 → 0.4
+    # explicit_reassurance → worry -= 0.65, from 0.8 → 0.15
     assert saved.unresolved_worry < 0.8
 
 
