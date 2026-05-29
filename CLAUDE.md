@@ -285,24 +285,16 @@ HINAMI = PersonaConfig(
 
 ### 角色參數對照表
 
-| 參數 | Akane（茜） | Rem（雷姆） | Hinami（日向） | 備註 |
-|------|------------|------------|---------------|------|
-| `decay_rate` | 0.08（記性強） | 0.10（稍快消散） | **0.06（最強記憶）** | 值越大 carryover 衰減越快 |
-| `inhibition_threshold` | 0.45（較克制） | 0.40（情感外顯） | **0.35（掉面具最徹底）** | 越低越容易主動表達 |
-| `vulnerability_silence_min` | 4.0h | 3.0h | **5.0h（最難觸發）** | 需要沉默多久才進入 VW |
-| `worry_resolution_delta` | 0.60 | 0.65 | **0.70（解題導向）** | 被安慰後 worry 消散速度 |
-| `attachment_heat_bump` | 0.10 | 0.12 | **0.09（輕度附著）** | 親密互動附著熱度增量 |
-| `vulnerability_hour_range` | (22, 4) | (22, 4) | **(23, 5)（最寬）** | VW 區間 |
+| 參數 | Akane | Rem | Hinami |
+|---|---|---|---|
+| `decay_rate` | 0.08 | 0.10 | 0.06 |
+| `inhibition_threshold` | 0.45 | 0.40 | 0.35 |
+| `vulnerability_silence_min` | 4.0h | 3.0h | 5.0h |
+| `worry_resolution_delta` | 0.60 | 0.65 | 0.70 |
+| `attachment_heat_bump` | 0.10 | 0.12 | 0.09 |
+| VW 觸發特性 | 中等 | 最快 | 最慢但最徹底 |
 
-**4.5h 短沉默測試（差異關鍵區間）：**
-
-| Persona | VW at 4.5h silence |
-|---------|-------------------|
-| Hinami | **False**（需 5.0h） |
-| Akane | True（需 4.0h） |
-| Rem | True（需 3.0h） |
-
-> 新角色整合時可對照此表，選擇參考值並明確偏離原因。
+> 新角色參考這張表調整參數，引擎本體不需要改動。
 
 ### `chrono_social_engine/persona_config/_template.py`
 
