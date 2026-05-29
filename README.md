@@ -52,6 +52,22 @@ Gaussian 曲線，凌晨 2:00 達到巔峰（1.0），下午最低（0.02）。
 
 沉默越久，抑制越高。72 小時以上可達 0.88。脆弱窗口與睡眠剝奪都會降低抑制，讓角色更容易流露心裡話。
 
+### 行為偏壓層（Behavior Bias Layer）v2.2
+
+時間不是內容，是行為的引力場。
+
+`render_temporal_block()` 不暴露時鐘資訊（`current_time`、`weekday`），而是三個行為控制信號：
+
+| 欄位 | 說明 | 例子 |
+|------|------|------|
+| `reaction_bias` | 這次對話的情緒姿態 | `quiet_worry` / `subdued_longing` / `gentle_openness` |
+| `temporal_salience` | 時間感應該有多顯著 | `low` / `medium` / `high` |
+| `expression_mode` | 允許的時間表達層級 | `implicit` / `soft_explicit` |
+
+- `implicit`（預設）：不提時間，用語氣和行為表現時間感知
+- `soft_explicit`：可模糊提及（「都這麼晚了還不睡嗎」），不報時鐘
+- `explicit`：只由使用者明確問時間時觸發，由 system prompt 層控制
+
 ### 情感攜帶（Emotional Carryover）
 
 跨 session 保留：`intimacy_afterglow`、`unresolved_worry`、`emotional_openness_residue`、`attachment_heat`。每個角色有自己的 `decay_rate`（茜 0.08，预设 0.12）。
@@ -106,11 +122,12 @@ data/
 ## 測試覆蓋
 
 ```
-74 tests across 5 modules
-├── test_core.py           35  核心邏輯
-├── test_resolver.py       18  keyword + ctx 雙軌偵測
-├── test_db.py              7  CRUD + upsert + timezone
-├── test_hooks.py           5  lifecycle
+82 tests across 6 modules
+├── test_core.py              35  核心邏輯
+├── test_resolver.py          18  keyword + ctx 雙軌偵測
+├── test_db.py                 7  CRUD + upsert + timezone
+├── test_hooks.py              5  lifecycle
+├── test_render.py             8  render 輸出 + behavior bias
 └── test_integration_smoke.py  3  全鏈路冒煙測試
 ```
 
