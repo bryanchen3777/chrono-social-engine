@@ -50,7 +50,7 @@ class TestRunPreLlMHook:
             stress=40,
             db_path=tmp_db,
         )
-        assert "[Temporal Context]" in block
+        assert "[CHRONO_SOCIAL_CONTEXT v2.2]" in block
 
     def test_silence_hours_calculated(self, tmp_db):
         past = (datetime.now(ZoneInfo("Asia/Tokyo")) - timedelta(hours=7)).isoformat()
