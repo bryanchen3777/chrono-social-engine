@@ -1,6 +1,7 @@
 """
 render.py — render_temporal_block + situation_hint
 Templating for Hermes Agent system prompts.
+v2.2: time fields removed from prompt output; replaced with behavior-bias layer.
 """
 
 from __future__ import annotations
@@ -9,7 +10,7 @@ from typing import Callable
 
 from .core import TemporalContext
 
-# ── Hint Configuration ─────────────────────────────────────────────────────────
+# ── Hint Configuration (debug / hook use only, not rendered to LLM) ───────────
 
 _HINT_PRIORITY: list[tuple[Callable[[TemporalContext], bool], str | Callable[[TemporalContext], str]]] = [
     (
@@ -35,73 +36,74 @@ _HINT_PRIORITY: list[tuple[Callable[[TemporalContext], bool], str | Callable[[Te
 ]
 
 
+# ── Behavior-Bias Computations ─────────────────────────────────────────────────
+
+def _compute_reaction_bias(ctx: TemporalContext) -> str:
+    """把時間狀態翻譯成行為傾向，不暴露時鐘資訊"""
+    if ctx.carryover.unresolved_worry > 0.5:
+        return "lingering_concern"
+    if ctx.momentum.vulnerability_window:
+        return "gentle_openness"
+    if ctx.deviation_interpretation == "sleep_deprivation":
+        return "quiet_worry"
+    if ctx.anticipatory.preoccupation_flavor == "longing" and ctx.silence_hours > 24:
+        return "subdued_longing"
+    if ctx.anticipatory.is_overdue:
+        return "relief_mixed_reproach"
+    return "neutral"
+
+
+def _compute_temporal_salience(ctx: TemporalContext) -> str:
+    """決定這次對話時間感應該有多顯著"""
+    if ctx.anticipatory.is_overdue:
+        return "high"
+    if ctx.momentum.vulnerability_window:
+        return "high"
+    if ctx.deviation_interpretation is not None and ctx.deviation_interpretation != "normal":
+        return "medium"
+    if ctx.silence_hours > 6:
+        return "medium"
+    return "low"
+
+
+def _compute_expression_mode(ctx: TemporalContext) -> str:
+    """
+    預設 implicit。
+    salience=high → soft_explicit（可模糊提及時間感）
+    explicit 永遠不由系統觸發，只由使用者問時間時在 system prompt 層覆蓋。
+    """
+    salience = _compute_temporal_salience(ctx)
+    if salience == "high":
+        return "soft_explicit"
+    return "implicit"
+
+
 # ── Public API ─────────────────────────────────────────────────────────────────
 
 def render_temporal_block(ctx: TemporalContext) -> str:
     """
-    將 TemporalContext 渲染為可插入 system prompt 的字串區塊。
-    包含時間狀態、情感狀態、suggesstion hints。
+    將 TemporalContext 渲染為可插入 system prompt 的字串區塊（v2.2）。
+    不再輸出 current_time / weekday 等時鐘資訊，改為 behavior-bias 欄位。
     """
-    lines = ["[Temporal Context]"]
-
-    # Time period
-    period_label = {
-        "dawn": "清晨（04–07）",
-        "morning": "上午（07–12）",
-        "afternoon": "下午（12–18）",
-        "evening": "傍晚（18–22）",
-        "night": "深夜（22–24）",
-        "deep_night": "凌晨（00–04）",
-    }.get(ctx.time_period, ctx.time_period)
-
-    lines.append(f"- 時間區間：{period_label}")
-    lines.append(f"- 沉默時長：{ctx.silence_hours:.1f}h")
-
-    # Emotional state summary
-    carry = ctx.carryover
-    if carry.intimacy_afterglow > 0.3:
-        lines.append(f"- 親密餘溫：{carry.intimacy_afterglow:.0%}（warm afterglow）")
-    if carry.unresolved_worry > 0.2:
-        lines.append(f"- 未解除的掛念：{carry.unresolved_worry:.0%}")
-    if carry.emotional_openness_residue > 0.2:
-        lines.append(f"- 情感開放殘留：{carry.emotional_openness_residue:.0%}")
-    if carry.attachment_heat > 0.2:
-        lines.append(f"- 依戀熱度：{carry.attachment_heat:.0%}")
-
-    # Vulnerability window
-    if ctx.momentum.vulnerability_window:
-        lines.append("- ⚠️ 深夜脆弱窗口：抑制降低，真實情感可能外洩")
-
-    # Deviation interpretation
-    dev_map = {
-        "normal": "作息正常",
-        "sleep_deprivation": "⚠️ 對方未獲充足睡眠",
-        "longing": "⚠️ 對方有濃厚的思念情緒",
-        "missing": "⚠️ 對方感覺被忽略",
-    }
-    if ctx.deviation_interpretation != "normal":
-        lines.append(f"- 解讀偏離：{dev_map.get(ctx.deviation_interpretation, ctx.deviation_interpretation)}")
-
-    # Stress indicator
-    if ctx.stress > 60:
-        lines.append(f"- 情緒壓力：高（{ctx.stress}）")
-    elif ctx.stress > 30:
-        lines.append(f"- 情緒壓力：中（{ctx.stress}）")
-
-    # Situation hints
-    hints = _generate_situation_hint(ctx)
-    if hints:
-        lines.append("- 情境提示：")
-        for hint in hints:
-            lines.append(f"  · {hint}")
-
-    return "\n".join(lines)
+    return f"""[CHRONO_SOCIAL_CONTEXT v2.2]
+time_period={ctx.time_period}
+silence={ctx.silence_hours:.1f}h
+arrival_deviation={ctx.deviation_interpretation or 'none'}
+vulnerability_window={ctx.momentum.vulnerability_window}
+carryover_worry={ctx.carryover.unresolved_worry:.2f}
+attachment_heat={ctx.carryover.attachment_heat:.2f}
+reaction_bias={_compute_reaction_bias(ctx)}
+temporal_salience={_compute_temporal_salience(ctx)}
+expression_mode={_compute_expression_mode(ctx)}
+[/CHRONO_SOCIAL_CONTEXT]
+"""
 
 
 def _generate_situation_hint(ctx: TemporalContext) -> list[str]:
     """
     依優先序回傳最多 2 條 situation hints。
     Hint 可以是靜態字串，也可以是接收 ctx 的 callable。
+    (保留給 debug / hook 層使用，不出現在 LLM prompt 裡)
     """
     results = []
     for predicate, hint in _HINT_PRIORITY:

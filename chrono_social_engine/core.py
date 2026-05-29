@@ -101,6 +101,7 @@ class AnticipatoryState:
     preoccupation_flavor: Literal["none", "longing", "worried", "anxious"] = "none"
     expected_presence_prob: float = 0.5      # 靜態預設，v3 改為動態計算
     silence_hours: float = 0.0
+    is_overdue: bool = False                 # True when silence_hours > 48
 
 
 @dataclass
@@ -275,6 +276,7 @@ def build_temporal_context(
         preoccupation_flavor=flavor,
         expected_presence_prob=expected_prob,
         silence_hours=silence_hours,
+        is_overdue=silence_hours > 48,
     )
 
     # Deviation interpretation
