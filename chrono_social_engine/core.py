@@ -221,11 +221,13 @@ def build_temporal_context(
     current_stress: int,
     carryover: EmotionalCarryover,
     config: PersonaConfig,
+    now: datetime | None = None,
 ) -> TemporalContext:
     """
     根據狀態建立完整 TemporalContext。
     """
-    now = datetime.now(config.timezone)
+    if now is None:
+        now = datetime.now(config.timezone)
     current_hour = now.hour
     time_period = compute_time_period(current_hour)
 

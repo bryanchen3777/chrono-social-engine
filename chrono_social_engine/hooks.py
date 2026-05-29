@@ -28,6 +28,7 @@ def run_pre_llm_hook(
     last_msg_ts: str | None,
     stress: int,
     db_path: Path | None = None,
+    now: datetime | None = None,
 ) -> tuple[object, str, int]:
     """
     回傳：(ctx, temporal_block_string, adjusted_stress)
@@ -37,6 +38,8 @@ def run_pre_llm_hook(
     - 渲染 prompt block
     - 調整 stress（根据 emotional_inhibition）
     """
+    if now is None:
+        now = datetime.now(config.timezone)
     db = db_path or Path(__file__).parent.parent / "data" / "chrono_memory.db"
 
     init_db(db)
@@ -46,7 +49,7 @@ def run_pre_llm_hook(
     if raw and last_msg_ts:
         try:
             prev = datetime.fromisoformat(last_msg_ts)
-            elapsed = (datetime.now(config.timezone) - prev).total_seconds() / 3600.0
+            elapsed = (now - prev).total_seconds() / 3600.0
             elapsed = max(0.0, elapsed)
             carryover = raw.apply_decay(elapsed)
         except Exception:
@@ -60,6 +63,7 @@ def run_pre_llm_hook(
         current_stress=stress,
         carryover=carryover,
         config=config,
+        now=now,
     )
 
     block = render_temporal_block(ctx)
@@ -78,6 +82,7 @@ def run_post_llm_hook(
     config: PersonaConfig,
     user_message: str,
     db_path: Path | None = None,
+    now: datetime | None = None,
 ) -> None:
     """
     自動偵測 resolved_event，更新 carryover，寫入 DB。
@@ -89,8 +94,10 @@ def run_post_llm_hook(
     4. resolve_worry_if_applicable
     5. save_carryover_to_db
     """
+    if now is None:
+        now = datetime.now(config.timezone)
     db = db_path or Path(__file__).parent.parent / "data" / "chrono_memory.db"
-    now_iso = datetime.now(config.timezone).isoformat()
+    now_iso = now.isoformat()
 
     # 取出 ctx 實際型別（TemporalContext）
     # mypy narrowing via cast not needed at runtime
