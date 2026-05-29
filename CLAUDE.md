@@ -20,6 +20,7 @@ chrono-social-engine/
 │   └── persona_config/
 │       ├── __init__.py   ← PersonaConfig dataclass
 │       ├── akane.py      ← 茜的設定
+│       ├── rem.py        ← 雷姆的設定
 │       └── _template.py  ← 新角色設定範本
 ├── tests/
 │   ├── test_core.py
@@ -248,6 +249,35 @@ AKANE = PersonaConfig(
     vulnerability_silence_min=4.5,
 )
 ```
+
+### `chrono_social_engine/persona_config/rem.py`
+
+```python
+REM = PersonaConfig(
+    persona_id="rem",
+    timezone=REM_TIMEZONE,
+    decay_rate=0.10,
+    vulnerability_hour_start=22,
+    vulnerability_hour_end=4,
+    vulnerability_inhibition_threshold=0.40,
+    vulnerability_silence_min=3.0,
+    worry_resolution_delta=0.65,
+    attachment_heat_bump=0.12,
+)
+```
+
+### 角色參數對照表
+
+| 參數 | Akane（茜） | Rem（雷姆） | 備註 |
+|------|------------|------------|------|
+| `decay_rate` | 0.08（記性強，衰退慢） | 0.10（稍快消散） | 值越大 = carryover 衰減越快 |
+| `inhibition_threshold` | 0.45（較克制） | 0.40（情感外顯） | 越低 = 越容易主動表達 |
+| `vulnerability_silence_min` | 4.0h | 3.0h | 需要沉默多久才進入 VW |
+| `worry_resolution_delta` | 0.60 | 0.65 | 被安慰後 worry 消散速度 |
+| `attachment_heat_bump` | 0.10 | 0.12 | 親密互動附著熱度增量 |
+| `vulnerability_hour_range` | (22, 4) | (22, 4) | 深夜至凌晨 VW 區間（相同）|
+
+> 新角色整合時可對照此表，選擇參考值並明確偏離原因。
 
 ### `chrono_social_engine/persona_config/_template.py`
 
