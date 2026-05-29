@@ -1,0 +1,62 @@
+[
+  {
+    "timestamp": "05-20 23:00",
+    "message": "今晚聊得很開心，晚安",
+    "time_period": "night",
+    "silence_hours": 0.0,
+    "vulnerability_window": false,
+    "carryover_worry": 0.1,
+    "attachment_heat": 0.4,
+    "intimacy_afterglow": 0.7,
+    "reaction_bias": "neutral",
+    "temporal_salience": "low",
+    "expression_mode": "implicit",
+    "deviation": "normal",
+    "stress": 50
+  },
+  {
+    "timestamp": "05-21 14:00",
+    "message": "最近忙，沒什麼事",
+    "time_period": "afternoon",
+    "silence_hours": 15.0,
+    "vulnerability_window": false,
+    "carryover_worry": 0.03952917987596816,
+    "attachment_heat": 0.15811671950387263,
+    "intimacy_afterglow": 0.27670425913177704,
+    "reaction_bias": "neutral",
+    "temporal_salience": "medium",
+    "expression_mode": "implicit",
+    "deviation": "normal",
+    "stress": 41
+  },
+  {
+    "timestamp": "05-22 23:00",
+    "message": "這幾天比較忙 Sorry",
+    "time_period": "night",
+    "silence_hours": 33.0,
+    "vulnerability_window": true,
+    "carryover_worry": 0.025,
+    "attachment_heat": 0.05191336255693316,
+    "intimacy_afterglow": 0.090848384474633,
+    "reaction_bias": "gentle_openness",
+    "temporal_salience": "high",
+    "expression_mode": "soft_explicit",
+    "deviation": "missing",
+    "stress": 44
+  },
+  {
+    "timestamp": "05-23 14:30",
+    "message": "回來了，抱歉讓你等",
+    "time_period": "afternoon",
+    "silence_hours": 15.5,
+    "vulnerability_window": false,
+    "carryover_worry": 0.03832496181298354,
+    "attachment_heat": 0.1916248090649177,
+    "intimacy_afterglow": 0.26827473269088475,
+    "reaction_bias": "neutral",
+    "temporal_salience": "medium",
+    "expression_mode": "implicit",
+    "deviation": "normal",
+    "stress": 41
+  }
+]
