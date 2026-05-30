@@ -379,6 +379,7 @@ def build_temporal_context(
     stress_level: float = 0.0,
     # ── internal ──
     _profile: dict | None = None,
+    _carryover: "EmotionalCarryover | None" = None,   # v2.3 新增
 ) -> dict:
     """
     Returns a dict with all v2.1 fields.
@@ -448,12 +449,13 @@ def build_temporal_context(
     # v2.3 Decision Trace
     salience_level, salience_reason = _compute_temporal_salience(silence_hours)
 
+    _c = _carryover
     reaction_bias, bias_candidates, bias_reason, bias_confidence = \
         _compute_reaction_bias_with_trace(
             silence_hours        = silence_hours,
-            carryover_worry     = 0.0,
-            attachment_heat     = 0.0,
-            intimacy_afterglow = 0.0,
+            carryover_worry     = _c.unresolved_worry     if _c else 0.0,
+            attachment_heat     = _c.attachment_heat       if _c else 0.0,
+            intimacy_afterglow  = _c.intimacy_afterglow    if _c else 0.0,
             vulnerability_window= vuln_window,
         )
 
@@ -502,7 +504,12 @@ def build_temporal_context(
         selection_reason    = bias_reason,
         decision_confidence = bias_confidence,
         salience_reason     = salience_reason,
-        carryover_reason    = "carryover not loaded",
+        carryover_reason    = (
+            f"worry={_c.unresolved_worry:.2f}, "
+            f"heat={_c.attachment_heat:.2f}, "
+            f"glow={_c.intimacy_afterglow:.2f}"
+            if _c else "carryover not loaded"
+        ),
         suppressed_signals  = [
             s for s in ["sleep_pressure", "circadian_drift"]
             if s not in [t.name for t in triggers if t.accepted]

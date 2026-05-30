@@ -1,0 +1,22 @@
+[DECISION_TRACE]
+─────────────────────────────────────────────
+BIAS
+  selected    : neutral
+  confidence  : 0.30  ← ⚠️ 邊界案例
+  candidates  : neutral(0.30) | gentle_openness(0.00) | quiet_worry(0.00) | lingering_concern(0.00)
+  reason      : carryover_worry(0.00)
+  dominant    : carryover_worry
+
+TRIGGERS (#rank score accepted)
+  #1  stress_level             0.50  ✓  stress=0.50
+  #2  vulnerability_window     0.00  ✗  hour=8, silence=0.0h
+  #3  silence_hours            0.00  ✗  silence=0.0h
+
+SILENCE
+  selected    : analytical
+  candidates  : analytical(0.47) | suppressed(0.31) | hurt(0.22)
+  reason      : analysis_capacity=0.80 | stress=0.50 | defense=0.70
+
+SALIENCE    : silence=0.0h < 12h gate
+SUPPRESSED  : sleep_pressure, circadian_drift
+─────────────────────────────────────────────

@@ -68,6 +68,47 @@ _INHIBITION_RANGES: tuple[tuple[float, float, float], ...] = (
 )
 
 
+# ── Emotional Carryover (v2.3) ───────────────────────────────────────────────
+
+@dataclass
+class EmotionalCarryover:
+    intimacy_afterglow: float = 0.0
+    unresolved_worry: float = 0.0
+    emotional_openness_residue: float = 0.0
+    attachment_heat: float = 0.0
+    source_event: str = ""
+    triggered_at: str = ""
+    decay_rate: float = 0.12
+
+    def apply_decay(self, elapsed_hours: float) -> EmotionalCarryover:
+        factor = (1 - self.decay_rate) ** elapsed_hours
+        new_worry_floor = self.unresolved_worry * 0.25 if self.unresolved_worry > 0 else 0.0
+        new_worry = max(new_worry_floor, self.unresolved_worry * factor)
+        return EmotionalCarryover(
+            intimacy_afterglow=max(0.0, self.intimacy_afterglow * factor),
+            unresolved_worry=new_worry,
+            emotional_openness_residue=max(0.0, self.emotional_openness_residue * factor),
+            attachment_heat=max(0.0, self.attachment_heat * factor),
+            source_event=self.source_event,
+            triggered_at=self.triggered_at,
+            decay_rate=self.decay_rate,
+        )
+
+
+@dataclass
+class MomentumState:
+    vulnerability_window: bool = False
+    emotional_amplification: float = 0.0
+
+
+@dataclass
+class AnticipatoryState:
+    preoccupation_flavor: Literal["none", "longing", "worried", "anxious"] = "none"
+    expected_presence_prob: float = 0.5
+    silence_hours: float = 0.0
+    is_overdue: bool = False
+
+
 # ── P0: Proximity Filter ────────────────────────────────────────────────────────
 
 LEAKAGE_PROXIMITY_GATE = {
@@ -323,6 +364,7 @@ def build_temporal_context(
     stress_level: float = 0.0,
     # ── internal ──
     _profile: dict | None = None,
+    _carryover: "EmotionalCarryover | None" = None,   # v2.3 新增
 ) -> dict:
     tz = ZoneInfo("America/New_York")
     if now is None:
@@ -382,12 +424,13 @@ def build_temporal_context(
     # v2.3 Decision Trace
     salience_level, salience_reason = _compute_temporal_salience(silence_hours)
 
+    _c = _carryover
     reaction_bias, bias_candidates, bias_reason, bias_confidence = \
         _compute_reaction_bias_with_trace(
             silence_hours        = silence_hours,
-            carryover_worry     = 0.0,
-            attachment_heat     = 0.0,
-            intimacy_afterglow = 0.0,
+            carryover_worry     = _c.unresolved_worry     if _c else 0.0,
+            attachment_heat     = _c.attachment_heat       if _c else 0.0,
+            intimacy_afterglow  = _c.intimacy_afterglow    if _c else 0.0,
             vulnerability_window= vuln_window,
         )
 
@@ -436,7 +479,12 @@ def build_temporal_context(
         selection_reason    = bias_reason,
         decision_confidence = bias_confidence,
         salience_reason     = salience_reason,
-        carryover_reason    = "carryover not loaded",
+        carryover_reason    = (
+            f"worry={_c.unresolved_worry:.2f}, "
+            f"heat={_c.attachment_heat:.2f}, "
+            f"glow={_c.intimacy_afterglow:.2f}"
+            if _c else "carryover not loaded"
+        ),
         suppressed_signals  = [
             s for s in ["sleep_pressure", "circadian_drift"]
             if s not in [t.name for t in triggers if t.accepted]
