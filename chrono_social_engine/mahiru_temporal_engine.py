@@ -21,6 +21,12 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from typing import Literal
 
+from decision_trace import (
+    DecisionTrace,
+    TriggerRecord,
+    render_decision_trace,
+)
+
 # ── Type Aliases ────────────────────────────────────────────────────────────────
 
 SilenceType = Literal[
@@ -288,6 +294,60 @@ def compute_silence_distribution(
     return silence_type, probs
 
 
+# ── Salience (v2.3 recalibrated) ───────────────────────────────────────────────
+
+def _compute_temporal_salience(silence_hours: float) -> tuple[str, str]:
+    if silence_hours < 12:
+        return "low",         f"silence={silence_hours:.1f}h < 12h gate"
+    elif silence_hours < 24:
+        return "medium",      f"silence={silence_hours:.1f}h → 12h gate"
+    elif silence_hours < 48:
+        return "medium_high", f"silence={silence_hours:.1f}h → 24h gate"
+    else:
+        return "high",        f"silence={silence_hours:.1f}h → 48h gate"
+
+
+# ── Reaction Bias with Trace (v2.3) ────────────────────────────────────────────
+
+def _compute_reaction_bias_with_trace(
+    silence_hours:       float,
+    carryover_worry:     float,
+    attachment_heat:     float,
+    intimacy_afterglow:  float,
+    vulnerability_window: bool,
+) -> tuple[str, list[tuple[str, float]], str, float]:
+    scores: dict[str, float] = {
+        "neutral":               0.25,   # Mahiru 預設更內斂
+        "gentle_openness":       0.0,
+        "quiet_worry":           0.0,
+        "lingering_concern":     0.0,
+        "subdued_longing":       0.0,
+        "relief_mixed_reproach": 0.0,
+    }
+    scores["quiet_worry"]           += carryover_worry * 0.70
+    scores["lingering_concern"]     += carryover_worry * 0.50
+    scores["gentle_openness"]       += intimacy_afterglow * 0.60
+    scores["gentle_openness"]       += 0.40 if vulnerability_window else 0.0
+    scores["subdued_longing"]       += min(silence_hours / 48.0, 1.0) * 0.50
+    scores["relief_mixed_reproach"] += min(silence_hours / 72.0, 1.0) * 0.40
+    scores["quiet_worry"]           += attachment_heat * 0.30
+
+    candidates = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+    selected, top_score = candidates[0]
+    second_score = candidates[1][1] if len(candidates) > 1 else 0.0
+    confidence = round(top_score - second_score, 3)
+
+    signal_vals = {
+        "carryover_worry":    carryover_worry,
+        "attachment_heat":    attachment_heat,
+        "intimacy_afterglow": intimacy_afterglow,
+    }
+    dominant = max(signal_vals, key=signal_vals.get)
+    reason = f"{dominant}({signal_vals[dominant]:.2f})"
+
+    return selected, candidates, reason, confidence
+
+
 # ── Emotional Profile (Mahiru defaults) ────────────────────────────────────────
 
 DEFAULT_MAHIRU_PROFILE = {
@@ -385,6 +445,75 @@ def build_temporal_context(
     if sleep_dep:
         amplification += 0.15
 
+    # ── v2.3 Decision Trace ───────────────────────────────────────────────────
+    salience_level, salience_reason = _compute_temporal_salience(silence_hours)
+
+    reaction_bias, bias_candidates, bias_reason, bias_confidence = \
+        _compute_reaction_bias_with_trace(
+            silence_hours        = silence_hours,
+            carryover_worry      = 0.0,
+            attachment_heat      = 0.0,
+            intimacy_afterglow   = 0.0,
+            vulnerability_window = vuln_window,
+        )
+
+    triggers = [
+        TriggerRecord(
+            name         = "vulnerability_window",
+            score        = float(vuln_window),
+            accepted     = vuln_window,
+            reason       = f"hour={current_hour}, silence={silence_hours:.1f}h",
+            priority_rank= 1,
+        ),
+        TriggerRecord(
+            name         = "silence_hours",
+            score        = min(silence_hours / 48.0, 1.0),
+            accepted     = silence_hours >= 12,
+            reason       = f"silence={silence_hours:.1f}h",
+            priority_rank= 2,
+        ),
+        TriggerRecord(
+            name         = "stress_level",
+            score        = stress_level,
+            accepted     = stress_level >= 0.3,
+            reason       = f"stress={stress_level:.2f}",
+            priority_rank= 3,
+        ),
+    ]
+    triggers.sort(key=lambda t: t.score, reverse=True)
+    for i, t in enumerate(triggers):
+        t.priority_rank = i + 1
+
+    silence_candidates = sorted(
+        silence_prob_map.items(), key=lambda x: x[1], reverse=True
+    )[:3]
+    silence_reason_list = [
+        f"analysis_capacity={profile['analysis_capacity']:.2f}",
+        f"stress={stress_level:.2f}",
+        f"defense={profile['defense_level']:.2f}",
+    ]
+
+    trace = DecisionTrace(
+        dominant_signal     = max(
+            {"carryover_worry": 0.0, "attachment_heat": 0.0},
+            key=lambda k: {"carryover_worry": 0.0, "attachment_heat": 0.0}[k]
+        ),
+        candidate_biases    = [(b, round(s, 3)) for b, s in bias_candidates[:4]],
+        selected_bias       = reaction_bias,
+        selection_reason    = bias_reason,
+        decision_confidence = bias_confidence,
+        salience_reason     = salience_reason,
+        carryover_reason    = "carryover not loaded",
+        suppressed_signals  = [
+            s for s in ["sleep_pressure", "circadian_drift"]
+            if s not in [t.name for t in triggers if t.accepted]
+        ],
+        evaluated_triggers  = triggers,
+        silence_candidates  = [(s, p) for s, p in silence_candidates],
+        silence_selected    = silence_type,
+        silence_reason      = silence_reason_list,
+    )
+
     return {
         "current_hour": current_hour,
         "time_period": time_period,
@@ -413,6 +542,10 @@ def build_temporal_context(
         # P4
         "silence_type": silence_type,
         "silence_probability_map": silence_prob_map,
+        # v2.3 DecisionTrace
+        "reaction_bias":     reaction_bias,
+        "temporal_salience": salience_level,
+        "decision_trace":    trace,
     }
 
 
