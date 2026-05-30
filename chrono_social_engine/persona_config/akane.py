@@ -15,4 +15,6 @@ AKANE = PersonaConfig(
     vulnerability_silence_min=4.5,
     worry_resolution_delta=0.65,
     attachment_heat_bump=0.12,
+    abandonment_sensitivity=0.50,
+    facade_collapse_rate=0.10,
 )

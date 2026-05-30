@@ -24,3 +24,5 @@ class PersonaConfig:
     worry_resolution_delta: float = 0.6
     attachment_heat_bump: float = 0.1
     timezone: ZoneInfo = field(default_factory=lambda: ZoneInfo("America/New_York"))
+    abandonment_sensitivity: float = 0.50
+    facade_collapse_rate: float = 0.10

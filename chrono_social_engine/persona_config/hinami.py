@@ -14,4 +14,6 @@ HINAMI = PersonaConfig(
     vulnerability_silence_min=5.0,
     worry_resolution_delta=0.70,
     attachment_heat_bump=0.09,
+    abandonment_sensitivity=0.40,
+    facade_collapse_rate=0.20,
 )

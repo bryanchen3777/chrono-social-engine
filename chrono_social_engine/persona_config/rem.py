@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 
 # Rem 的時區：跟隨系統（config.yaml 的 timezone 為空）
 # 如果有特定時區需求，在這裡設定
-REM_TIMEZONE = ZoneInfo("Asia/Shanghai")  # 或 "Asia/Tokyo"，視角色設定而定
+REM_TIMEZONE = ZoneInfo("America/New_York")  # Eastern Time (EDT/EST)
 
 REM = PersonaConfig(
     persona_id="rem",
@@ -21,4 +21,6 @@ REM = PersonaConfig(
     vulnerability_silence_min=3.0,
     worry_resolution_delta=0.65,
     attachment_heat_bump=0.12,
+    abandonment_sensitivity=0.70,
+    facade_collapse_rate=0.05,
 )
